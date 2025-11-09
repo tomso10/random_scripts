@@ -1,0 +1,75 @@
+---
+- name: Install Discord, Flameshot, Minecraft, Steam, npm, and Docker on Fedora
+  hosts: localhost
+  become: yes
+
+  tasks:
+    - name: Ensure dnf-plugins-core is installed
+      dnf:
+        name: dnf-plugins-core
+        state: present
+
+    - name: Ensure Flatpak is installed
+      dnf:
+        name: flatpak
+        state: present
+
+    - name: Add Flathub remote for Flatpak
+      command: flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+      args:
+        creates: /var/lib/flatpak/repo/flathub
+
+    - name: Enable RPM Fusion free and nonfree repositories
+      dnf:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm"
+        - "https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm"
+      ignore_errors: yes
+
+    - name: Install Flameshot
+      dnf:
+        name: flameshot
+        state: present
+
+    - name: Install Steam
+      dnf:
+        name: steam
+        state: present
+
+    - name: Install Discord via Flatpak
+      flatpak:
+        name: com.discordapp.Discord
+        state: present
+        remote: flathub
+
+    - name: Install Minecraft via Flatpak
+      flatpak:
+        name: com.mojang.Minecraft
+        state: present
+        remote: flathub
+
+    - name: Install Node.js and npm
+      dnf:
+        name: nodejs
+        state: present
+
+    - name: Install Docker
+      dnf:
+        name:
+          - docker
+          - docker-compose
+        state: present
+
+    - name: Ensure Docker service is enabled and started
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+
+    - name: Add current user to Docker group
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes

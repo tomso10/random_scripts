@@ -1,7 +1,10 @@
 ---
-- name: Install Discord, Flameshot, Minecraft, Steam, npm, and Docker on Fedora
+- name: Install Discord, Flameshot, Minecraft, Steam, npm, Docker, and VMware Workstation Pro on Fedora
   hosts: localhost
   become: yes
+
+  vars:
+    vmware_installer_url: "https://www.vmware.com/go/getworkstation-linux"  # Official VMware download link (latest)
 
   tasks:
     - name: Ensure dnf-plugins-core is installed
@@ -73,3 +76,14 @@
         name: "{{ ansible_user }}"
         groups: docker
         append: yes
+
+    - name: Download VMware Workstation Pro installer
+      get_url:
+        url: "{{ vmware_installer_url }}"
+        dest: /tmp/VMware-Workstation.bundle
+        mode: '0755'
+
+    - name: Run VMware Workstation Pro installer
+      command: /tmp/VMware-Workstation.bundle --console --required
+      args:
+        creates: /usr/lib/vmware  # Skip if already installed

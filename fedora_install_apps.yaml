@@ -147,3 +147,16 @@
     - name: Inform user about re-login needed for group membership
       debug:
         msg: "User '{{ ansible_user }}' was added to the 'wireshark' group. They must log out and back in (or run 'newgrp wireshark') for the group change to take effect."
+
+    - name: Check if vim is already installed
+      command: command -v vim
+      register: vim_check
+      changed_when: false
+      failed_when: false
+    
+    - name: Install vim if not present
+      dnf:
+        name: vim-enhanced
+        state: present
+      when: vim_check.rc != 0
+    

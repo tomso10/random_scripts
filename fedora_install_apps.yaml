@@ -93,3 +93,8 @@
       command: /tmp/VMware-Workstation.bundle --console --required
       args:
         creates: /usr/lib/vmware
+    - name: Install Burp Suite Community via Flatpak (Flathub)
+    flatpak:
+      name: net.portswigger.BurpSuite-Community
+      state: present
+      remote: flathub

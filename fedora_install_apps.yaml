@@ -1,10 +1,10 @@
 ---
-- name: Install Discord, Flameshot, Minecraft, Steam, npm, Docker, and VMware Workstation Pro on Fedora
+- name: Install apps on Fedora
   hosts: localhost
   become: yes
 
   vars:
-    vmware_installer_url: "https://www.vmware.com/go/getworkstation-linux"  # Official VMware download link (latest)
+    vmware_installer_url: "https://www.vmware.com/go/getworkstation-linux"  # Official VMware download link
 
   tasks:
     - name: Ensure dnf-plugins-core is installed
@@ -53,6 +53,12 @@
         state: present
         remote: flathub
 
+    - name: Install Bitwarden via Flatpak
+      flatpak:
+        name: com.bitwarden.desktop
+        state: present
+        remote: flathub
+
     - name: Install Node.js and npm
       dnf:
         name: nodejs
@@ -86,4 +92,4 @@
     - name: Run VMware Workstation Pro installer
       command: /tmp/VMware-Workstation.bundle --console --required
       args:
-        creates: /usr/lib/vmware  # Skip if already installed
+        creates: /usr/lib/vmware

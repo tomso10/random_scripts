@@ -59,6 +59,12 @@
         state: present
         remote: flathub
 
+    - name: Install Burp Suite Community via Flatpak (Flathub)
+      flatpak:
+        name: net.portswigger.BurpSuite-Community
+        state: present
+        remote: flathub
+
     - name: Install Node.js and npm
       dnf:
         name: nodejs
@@ -93,8 +99,51 @@
       command: /tmp/VMware-Workstation.bundle --console --required
       args:
         creates: /usr/lib/vmware
-    - name: Install Burp Suite Community via Flatpak (Flathub)
-    flatpak:
-      name: net.portswigger.BurpSuite-Community
-      state: present
-      remote: flathub
+
+    # --- Wireshark install & non-root capture setup ---
+    - name: Install Wireshark (GUI and CLI) and libcap
+      dnf:
+        name:
+          - wireshark-qt    # GUI
+          - wireshark-cli   # tshark & dumpcap
+          - libcap          # provides setcap
+        state: present
+
+    - name: Ensure wireshark group exists
+      group:
+        name: wireshark
+        state: present
+        system: yes
+
+    - name: Add current user to wireshark group
+      user:
+        name: "{{ ansible_user }}"
+        groups: wireshark
+        append: yes
+
+    - name: Locate dumpcap binary
+      command: "command -v dumpcap"
+      register: dumpcap_path
+      changed_when: false
+      failed_when: false
+
+    - name: Fail early if dumpcap not found
+      fail:
+        msg: "dumpcap binary not found after installing wireshark. Manual investigation required."
+      when: dumpcap_path.stdout == ""
+
+    - name: Set capabilities on dumpcap so non-root users can capture packets
+      command: "setcap cap_net_raw,cap_net_admin+eip {{ dumpcap_path.stdout }}"
+      when: dumpcap_path.stdout != ""
+
+    - name: Ensure dumpcap is owned by root and executable
+      file:
+        path: "{{ dumpcap_path.stdout }}"
+        owner: root
+        group: root
+        mode: '0755'
+      when: dumpcap_path.stdout != ""
+
+    - name: Inform user about re-login needed for group membership
+      debug:
+        msg: "User '{{ ansible_user }}' was added to the 'wireshark' group. They must log out and back in (or run 'newgrp wireshark') for the group change to take effect."

@@ -1,5 +1,5 @@
 ---
-- name: Setup essential tools on Linux Mint
+- name: Setup essential tools on Ubuntu 25.10
   hosts: localhost
   become: yes
 
@@ -36,7 +36,7 @@
       args:
         creates: /var/lib/flatpak/repo/flathub
 
-    # --- App installs ---
+    # --- App installs (APT) ---
     - name: Install Flameshot
       apt:
         name: flameshot
@@ -54,7 +54,7 @@
           - npm
         state: present
 
-    - name: Install Docker
+    - name: Install Docker and Docker Compose
       apt:
         name:
           - docker.io
@@ -98,7 +98,7 @@
         state: present
         remote: flathub
 
-    # --- Wireshark non-root setup ---
+    # --- Wireshark setup (non-root capture) ---
     - name: Install Wireshark and dependencies
       apt:
         name:
@@ -129,51 +129,57 @@
 
     - name: Inform user about re-login needed for group membership
       debug:
-        msg: "Re-login or run 'newgrp wireshark' to apply wireshark group membership."
+        msg: "Re-login or run 'newgrp wireshark' to apply Wireshark group membership."
 
-    # --- Keyboard Shortcuts ---
-    # System Monitor on Ctrl+Shift+Esc
-    - name: Bind Ctrl+Shift+Esc to launch System Monitor
+    # --- Keyboard Shortcuts (GNOME) ---
+    # System Monitor (Ctrl+Shift+Esc)
+    - name: Create custom keybinding for System Monitor
       command: >
-        gsettings set org.cinnamon.desktop.keybindings custom-list
-        "$(gsettings get org.cinnamon.desktop.keybindings custom-list | sed "s/]$/, 'custom0']/")"
-      ignore_errors: yes
-
-    - name: Create System Monitor custom keybinding
-      command: >
-        gsettings set org.cinnamon.desktop.keybindings.custom-keybinding:/org/cinnamon/desktop/keybindings/custom-keybindings/custom0/ name 'System Monitor'
+        gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/
+        name 'System Monitor'
       ignore_errors: yes
 
     - name: Set System Monitor command
       command: >
-        gsettings set org.cinnamon.desktop.keybindings.custom-keybinding:/org/cinnamon/desktop/keybindings/custom-keybindings/custom0/ command 'gnome-system-monitor'
+        gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/
+        command 'gnome-system-monitor'
       ignore_errors: yes
 
     - name: Set System Monitor shortcut
       command: >
-        gsettings set org.cinnamon.desktop.keybindings.custom-keybinding:/org/cinnamon/desktop/keybindings/custom-keybindings/custom0/ binding "['<Control><Shift>Escape']"
+        gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/
+        binding "['<Control><Shift>Escape']"
       ignore_errors: yes
 
-    # Flameshot on Win+Shift+S
-    - name: Bind Win+Shift+S to Flameshot GUI
+    - name: Add System Monitor to custom keybindings list
       command: >
-        gsettings set org.cinnamon.desktop.keybindings custom-list
-        "$(gsettings get org.cinnamon.desktop.keybindings custom-list | sed "s/]$/, 'custom1']/")"
+        gsettings set org.gnome.settings-daemon.plugins.media-keys custom-keybindings
+        "['/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/']"
       ignore_errors: yes
 
-    - name: Create Flameshot keybinding
+    # Flameshot (Super+Shift+S)
+    - name: Create custom keybinding for Flameshot
       command: >
-        gsettings set org.cinnamon.desktop.keybindings.custom-keybinding:/org/cinnamon/desktop/keybindings/custom-keybindings/custom1/ name 'Flameshot'
+        gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1/
+        name 'Flameshot'
       ignore_errors: yes
 
     - name: Set Flameshot command
       command: >
-        gsettings set org.cinnamon.desktop.keybindings.custom-keybinding:/org/cinnamon/desktop/keybindings/custom-keybindings/custom1/ command 'flameshot gui'
+        gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1/
+        command 'flameshot gui'
       ignore_errors: yes
 
     - name: Set Flameshot shortcut
       command: >
-        gsettings set org.cinnamon.desktop.keybindings.custom-keybinding:/org/cinnamon/desktop/keybindings/custom-keybindings/custom1/ binding "['<Super><Shift>S']"
+        gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1/
+        binding "['<Super><Shift>S']"
+      ignore_errors: yes
+
+    - name: Add Flameshot to custom keybindings list
+      command: >
+        gsettings set org.gnome.settings-daemon.plugins.media-keys custom-keybindings
+        "['/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/', '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1/']"
       ignore_errors: yes
 
     # --- Bitwarden for Firefox ---
@@ -198,12 +204,9 @@
       debug:
         msg: >
           Bitwarden Firefox extension installed system-wide.
-          Restart Firefox if it was open to load the extension.
-
+          Restart Firefox to load the extension.
 
     # --- Finish ---
     - name: Notify completion
       debug:
         msg: "Setup complete! Reboot or re-login to apply Docker/Wireshark group changes and keyboard shortcuts."
-
-

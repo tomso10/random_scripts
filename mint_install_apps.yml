@@ -1,0 +1,209 @@
+---
+- name: Setup essential tools on Linux Mint
+  hosts: localhost
+  become: yes
+
+  tasks:
+    # --- Package updates ---
+    - name: Update APT package index
+      apt:
+        update_cache: yes
+
+    - name: Upgrade all packages
+      apt:
+        upgrade: dist
+        autoremove: yes
+
+    # --- Core utilities ---
+    - name: Ensure core tools are installed
+      apt:
+        name:
+          - curl
+          - wget
+          - git
+          - vim
+          - flatpak
+          - gnome-software-plugin-flatpak
+          - software-properties-common
+          - apt-transport-https
+          - ca-certificates
+          - gnupg
+        state: present
+
+    # --- Add Flathub remote ---
+    - name: Add Flathub remote for Flatpak
+      command: flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+      args:
+        creates: /var/lib/flatpak/repo/flathub
+
+    # --- App installs ---
+    - name: Install Flameshot
+      apt:
+        name: flameshot
+        state: present
+
+    - name: Install Steam
+      apt:
+        name: steam-installer
+        state: present
+
+    - name: Install Node.js and npm
+      apt:
+        name:
+          - nodejs
+          - npm
+        state: present
+
+    - name: Install Docker
+      apt:
+        name:
+          - docker.io
+          - docker-compose
+        state: present
+
+    - name: Ensure Docker service is enabled and started
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+
+    - name: Add current user to Docker group
+      user:
+        name: "{{ ansible_facts['env']['USER'] | default(ansible_user) }}"
+        groups: docker
+        append: yes
+
+    # --- Flatpak apps ---
+    - name: Install Discord via Flatpak
+      flatpak:
+        name: com.discordapp.Discord
+        state: present
+        remote: flathub
+
+    - name: Install Minecraft via Flatpak
+      flatpak:
+        name: com.mojang.Minecraft
+        state: present
+        remote: flathub
+
+    - name: Install Bitwarden via Flatpak
+      flatpak:
+        name: com.bitwarden.desktop
+        state: present
+        remote: flathub
+
+    - name: Install Burp Suite Community via Flatpak
+      flatpak:
+        name: net.portswigger.BurpSuite-Community
+        state: present
+        remote: flathub
+
+    # --- Wireshark non-root setup ---
+    - name: Install Wireshark and dependencies
+      apt:
+        name:
+          - wireshark
+          - libcap2-bin
+        state: present
+
+    - name: Ensure wireshark group exists
+      group:
+        name: wireshark
+        state: present
+
+    - name: Add current user to wireshark group
+      user:
+        name: "{{ ansible_facts['env']['USER'] | default(ansible_user) }}"
+        groups: wireshark
+        append: yes
+
+    - name: Locate dumpcap binary
+      command: "command -v dumpcap"
+      register: dumpcap_path
+      changed_when: false
+      failed_when: false
+
+    - name: Set dumpcap capabilities for non-root packet capture
+      command: "setcap cap_net_raw,cap_net_admin+eip {{ dumpcap_path.stdout }}"
+      when: dumpcap_path.stdout != ""
+
+    - name: Inform user about re-login needed for group membership
+      debug:
+        msg: "Re-login or run 'newgrp wireshark' to apply wireshark group membership."
+
+    # --- Keyboard Shortcuts ---
+    # System Monitor on Ctrl+Shift+Esc
+    - name: Bind Ctrl+Shift+Esc to launch System Monitor
+      command: >
+        gsettings set org.cinnamon.desktop.keybindings custom-list
+        "$(gsettings get org.cinnamon.desktop.keybindings custom-list | sed "s/]$/, 'custom0']/")"
+      ignore_errors: yes
+
+    - name: Create System Monitor custom keybinding
+      command: >
+        gsettings set org.cinnamon.desktop.keybindings.custom-keybinding:/org/cinnamon/desktop/keybindings/custom-keybindings/custom0/ name 'System Monitor'
+      ignore_errors: yes
+
+    - name: Set System Monitor command
+      command: >
+        gsettings set org.cinnamon.desktop.keybindings.custom-keybinding:/org/cinnamon/desktop/keybindings/custom-keybindings/custom0/ command 'gnome-system-monitor'
+      ignore_errors: yes
+
+    - name: Set System Monitor shortcut
+      command: >
+        gsettings set org.cinnamon.desktop.keybindings.custom-keybinding:/org/cinnamon/desktop/keybindings/custom-keybindings/custom0/ binding "['<Control><Shift>Escape']"
+      ignore_errors: yes
+
+    # Flameshot on Win+Shift+S
+    - name: Bind Win+Shift+S to Flameshot GUI
+      command: >
+        gsettings set org.cinnamon.desktop.keybindings custom-list
+        "$(gsettings get org.cinnamon.desktop.keybindings custom-list | sed "s/]$/, 'custom1']/")"
+      ignore_errors: yes
+
+    - name: Create Flameshot keybinding
+      command: >
+        gsettings set org.cinnamon.desktop.keybindings.custom-keybinding:/org/cinnamon/desktop/keybindings/custom-keybindings/custom1/ name 'Flameshot'
+      ignore_errors: yes
+
+    - name: Set Flameshot command
+      command: >
+        gsettings set org.cinnamon.desktop.keybindings.custom-keybinding:/org/cinnamon/desktop/keybindings/custom-keybindings/custom1/ command 'flameshot gui'
+      ignore_errors: yes
+
+    - name: Set Flameshot shortcut
+      command: >
+        gsettings set org.cinnamon.desktop.keybindings.custom-keybinding:/org/cinnamon/desktop/keybindings/custom-keybindings/custom1/ binding "['<Super><Shift>S']"
+      ignore_errors: yes
+
+    # --- Bitwarden for Firefox ---
+    - name: Ensure Firefox is installed
+      apt:
+        name: firefox
+        state: present
+
+    - name: Create Firefox extensions directory
+      file:
+        path: /usr/lib/firefox/browser/extensions
+        state: directory
+        mode: '0755'
+
+    - name: Download Bitwarden Firefox extension (.xpi)
+      get_url:
+        url: "https://addons.mozilla.org/firefox/downloads/latest/bitwarden-password-manager/latest.xpi"
+        dest: /usr/lib/firefox/browser/extensions/{446900e4-71c2-419f-a6a7-df9c091e268b}.xpi
+        mode: '0644'
+
+    - name: Inform user about Bitwarden extension install
+      debug:
+        msg: >
+          Bitwarden Firefox extension installed system-wide.
+          Restart Firefox if it was open to load the extension.
+
+
+    # --- Finish ---
+    - name: Notify completion
+      debug:
+        msg: "Setup complete! Reboot or re-login to apply Docker/Wireshark group changes and keyboard shortcuts."
+
+

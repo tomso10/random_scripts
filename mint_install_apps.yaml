@@ -186,13 +186,6 @@
       debug:
         msg: "✅ Setup complete! Reboot or re-login to apply Docker/Wireshark group changes and keyboard shortcuts."
 
-
-    ---
-- name: Install Bitwarden and Bitwarden Extension in Brave
-  hosts: localhost
-  become: yes
-
-  tasks:
     # --- Install Bitwarden (Flatpak) ---
     - name: Install Bitwarden via Flatpak
       flatpak:

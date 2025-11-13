@@ -181,30 +181,6 @@
         "['/org/cinnamon/desktop/keybindings/custom-keybindings/custom0/', '/org/cinnamon/desktop/keybindings/custom-keybindings/custom1/']"
       ignore_errors: yes
 
-    # --- Bitwarden for Firefox ---
-    - name: Ensure Firefox is installed
-      apt:
-        name: firefox
-        state: present
-
-    - name: Create Firefox extensions directory
-      file:
-        path: /usr/lib/firefox/browser/extensions
-        state: directory
-        mode: '0755'
-
-    - name: Download Bitwarden Firefox extension (.xpi)
-      get_url:
-        url: "https://addons.mozilla.org/firefox/downloads/latest/bitwarden-password-manager/latest.xpi"
-        dest: /usr/lib/firefox/browser/extensions/{446900e4-71c2-419f-a6a7-df9c091e268b}.xpi
-        mode: '0644'
-
-    - name: Inform user about Bitwarden extension install
-      debug:
-        msg: >
-          Bitwarden Firefox extension installed system-wide.
-          Restart Firefox to load the extension.
-
     # --- Finish ---
     - name: Notify completion
       debug:

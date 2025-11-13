@@ -185,3 +185,48 @@
     - name: Notify completion
       debug:
         msg: "✅ Setup complete! Reboot or re-login to apply Docker/Wireshark group changes and keyboard shortcuts."
+
+
+    ---
+- name: Install Bitwarden and Bitwarden Extension in Brave
+  hosts: localhost
+  become: yes
+
+  tasks:
+    # --- Install Bitwarden (Flatpak) ---
+    - name: Install Bitwarden via Flatpak
+      flatpak:
+        name: com.bitwarden.desktop
+        state: present
+        remote: flathub
+
+    # --- Install Bitwarden (APT) ---
+    - name: Install Bitwarden via APT (if not using Flatpak)
+      apt:
+        name: bitwarden
+        state: present
+      when: ansible_facts['distribution'] == 'Ubuntu' or ansible_facts['distribution'] == 'LinuxMint'
+
+    # --- Install Brave browser ---
+    - name: Install Brave browser via APT
+      apt:
+        name: brave-browser
+        state: present
+
+    # --- Install Bitwarden Firefox extension (for Brave) ---
+    - name: Download Bitwarden extension (.xpi) for Brave
+      get_url:
+        url: "https://addons.mozilla.org/firefox/downloads/latest/bitwarden-password-manager/latest.xpi"
+        dest: /usr/lib/brave/browser/extensions/{446900e4-71c2-419f-a6a7-df9c091e268b}.xpi
+        mode: '0644'
+
+    # --- Install Brave Extension for Bitwarden ---
+    - name: Enable Bitwarden extension for Brave
+      command: "brave --load-extension=/usr/lib/brave/browser/extensions/{446900e4-71c2-419f-a6a7-df9c091e268b}.xpi"
+      ignore_errors: yes
+
+    # --- Inform the user ---
+    - name: Notify about Bitwarden Extension installation
+      debug:
+        msg: "✅ Bitwarden extension installed in Brave browser. Please restart Brave to activate the extension."
+

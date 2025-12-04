@@ -1,8 +1,8 @@
 ---
-- name: windows11_install_apps.yaml
-  hosts: localhost
-  connection: local
+- name: Install and configure Windows 11 apps
+  hosts: windows
   gather_facts: yes
+
   tasks:
 
     # 1. Ensure Chocolatey is installed
@@ -12,7 +12,7 @@
         state: present
 
     # 2. Install applications
-    - name: Install multiple applications
+    - name: Install multiple applications via Chocolatey
       win_chocolatey:
         name:
           - steam
@@ -25,17 +25,18 @@
           - vmwareworkstation
           - vlc
           - minecraft
+          - bitwarden
         state: present
         ignore_checksums: yes
 
-    # 3. Configure Taskbar: move to bottom left and remove bloat
-    - name: Configure Taskbar (PowerShell)
+    # 3. Configure Taskbar: move to bottom-left
+    - name: Configure Taskbar position
       win_shell: |
-        # Move taskbar icons to left
-        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name TaskbarAl -Value 0
+        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" `
+        -Name TaskbarAl -Value 0
 
-    # 4. Set background to Windows Spotlight (Featured pictures)
-    - name: Set background to Spotlight
+    # 4. Set background to Featured/Spotlight
+    - name: Enable Spotlight background
       win_shell: |
         $RegPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
         Set-ItemProperty -Path $RegPath -Name "RotatingLockScreenEnabled" -Value 1
